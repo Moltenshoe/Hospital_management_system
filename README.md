@@ -1,6 +1,6 @@
 # Hospital Management System (HMS) with PyQt5
 
-Welcome! This is a simple, desktop-based Hospital Management System (HMS) built using Python, PyQt5 for the user interface, and SQLite for the database.
+This is a simple, desktop-based Hospital Management System (HMS) built using Python, PyQt5 for the user interface, and SQLite for the database.
 
 It's designed with three distinct user roles, each with their own permissions and dashboard.
 
