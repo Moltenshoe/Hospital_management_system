@@ -1,0 +1,6 @@
+# Database file
+hms.db
+*.db
+
+# Python cache
+__pycache__/
