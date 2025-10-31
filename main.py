@@ -1,13 +1,18 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QStackedWidget, QMessageBox
-from PyQt5.QtCore import Qt, QTimer # Import QTimer
+from PyQt5.QtCore import Qt, QTimer
 
 # Import our custom classes
 from db_manager import DatabaseManager
-from ui_widgets import (
-    LoginWidget, RegisterWidget, AdminDashboardWidget, 
-    DoctorDashboardWidget, ReceptionistDashboardWidget
-)
+
+# --- NEW IMPORTS ---
+# Instead of one import, we import from our new, separate files
+from ui.auth_widgets import LoginWidget, RegisterWidget
+from ui.admin_dashboard import AdminDashboardWidget
+from ui.doctor_dashboard import DoctorDashboardWidget
+from ui.receptionist_dashboard import ReceptionistDashboardWidget
+# --- END NEW IMPORTS ---
+
 
 class MainWindow(QMainWindow):
     def __init__(self, db_manager):
@@ -131,6 +136,10 @@ class MainWindow(QMainWindow):
         self.admin_dashboard.approve_user.connect(self.handle_approve_user)
         self.admin_dashboard.deny_user.connect(self.handle_deny_user)
         self.admin_dashboard.create_admin.connect(self.handle_create_admin)
+        
+        # --- NEW ADMIN CONNECTIONS ---
+        self.admin_dashboard.add_user.connect(self.handle_add_user)
+        self.admin_dashboard.remove_user.connect(self.handle_remove_user)
 
     def _connect_doctor_signals(self):
         self.doctor_dashboard.logout_requested.connect(self.show_login_page)
@@ -145,12 +154,16 @@ class MainWindow(QMainWindow):
     # --- Data Loading ---
 
     def load_admin_data(self):
+        # This function now loads data for BOTH admin tables
         pending_users = self.db.get_pending_registrations()
         self.admin_dashboard.load_pending_registrations(pending_users)
         
+        all_users = self.db.get_all_users()
+        self.admin_dashboard.load_all_users(all_users)
+        
     def load_doctor_data(self):
         patients = self.db.get_patients_for_doctor(self.current_user_id)
-        self.doctor_dashboard.load_assigned_patients(patients)
+        self.doctor_dashboard.load_assigned_patients(patients) # The UI will sort them
 
     def load_receptionist_data(self):
         patients = self.db.get_all_patients()
@@ -196,14 +209,14 @@ class MainWindow(QMainWindow):
     def handle_approve_user(self, user_id):
         if self.db.approve_registration(user_id):
             QMessageBox.information(self, "Success", "User has been approved.")
-            self.load_admin_data() # Refresh table
+            self.load_admin_data() # Refresh all admin tables
         else:
             QMessageBox.warning(self, "Error", "Could not approve user.")
 
     def handle_deny_user(self, user_id):
         if self.db.deny_registration(user_id):
             QMessageBox.information(self, "Success", "User has been denied and removed.")
-            self.load_admin_data() # Refresh table
+            self.load_admin_data() # Refresh all admin tables
         else:
             QMessageBox.warning(self, "Error", "Could not deny user.")
             
@@ -215,14 +228,34 @@ class MainWindow(QMainWindow):
         if self.db.create_admin_user(name, phone, password):
             QMessageBox.information(self, "Success", "New admin user created successfully.")
             self.admin_dashboard.clear_admin_form()
+            self.load_admin_data() # Refresh all admin tables
         else:
             QMessageBox.warning(self, "Error", "Could not create admin. Phone may already be in use.")
+    
+    # --- NEW ADMIN HANDLERS ---
+    def handle_add_user(self, name, phone, password, role):
+        if self.db.create_user_by_admin(name, phone, password, role):
+            QMessageBox.information(self, "Success", f"New {role} user created successfully.")
+            self.load_admin_data() # Refresh all admin tables
+        else:
+            QMessageBox.warning(self, "Error", f"Could not create user. Phone may already be in use.")
+            
+    def handle_remove_user(self, user_id):
+        if user_id == self.current_user_id:
+            QMessageBox.warning(self, "Error", "You cannot delete your own account.")
+            return
+            
+        if self.db.delete_user_by_admin(user_id, self.current_user_id):
+            QMessageBox.information(self, "Success", "User has been permanently deleted.")
+            self.load_admin_data() # Refresh all admin tables
+        else:
+            QMessageBox.warning(self, "Error", "Could not delete user.")
             
     # --- Doctor Handlers ---
     def handle_update_patient_status(self, patient_id, status):
         if self.db.update_patient_status_by_doctor(patient_id, status):
             QMessageBox.information(self, "Success", f"Patient status updated to '{status}'.")
-            self.load_doctor_data() # Refresh table
+            self.load_doctor_data() # Refresh doctor's tables
         else:
             QMessageBox.warning(self, "Error", "Could not update patient status.")
             

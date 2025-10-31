@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2025-10-31
+### Added
+- **Admin:** Added a new "Manage All Users" tab to the admin dashboard.
+- **Admin:** Admins can now create new, active users of any role (admin, doctor, receptionist) from their dashboard.
+- **Admin:** Admins can now delete any existing user (except themselves).
+- **Doctor:** Added an "Accept All Pending" button to the doctor's dashboard to accept all patients at once.
+
+### Changed
+- **Refactor:** The entire UI has been refactored for scalability. All classes from the single `ui_widgets.py` file have been split into a new `ui/` package with separate files:
+    - `ui/auth_widgets.py`
+    - `ui/admin_dashboard.py`
+    - `ui/doctor_dashboard.py`
+    - `ui/receptionist_dashboard.py`
+- **Doctor:** The Doctor dashboard layout is now a `QTabWidget`, separating patients into a "Pending Patients" tab and an "Accepted Patients" tab.
+- **Refactor:** `main.py` has been updated to import from the new `ui/` package.
+- **Refactor:** `db_manager.py` was updated with new functions (`get_all_users`, `delete_user_by_admin`, `create_user_by_admin`, `accept_all_pending_patients`) to support the new features.
+
+---
+
 ## [0.1.0] - 2025-10-24
 ### Added
 - **Initial Project Release**

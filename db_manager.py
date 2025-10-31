@@ -243,7 +243,56 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error updating patient status: {e}")
             return False
+        
 
+    # --- NEW ADMIN FUNCTIONS ---
+
+    def get_all_users(self):
+        """Returns a list of all users."""
+        try:
+            self.cursor.execute("SELECT id, full_name, phone, role, status FROM users")
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error fetching all users: {e}")
+            return []
+
+    def delete_user_by_admin(self, user_id, admin_id):
+        """Deletes any user. Prevents admin self-deletion."""
+        if user_id == admin_id:
+            print("Admin cannot delete themselves.")
+            return False # Admin cannot delete themselves
+        try:
+            # Also delete patients created by this user if they are a receptionist
+            # Or unassign patients if they are a doctor (optional, but good practice)
+            
+            # For simplicity, we just delete the user.
+            # In a real app, you'd handle foreign key constraints.
+            
+            self.cursor.execute("DELETE FROM users WHERE id=?", (user_id,))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Error deleting user: {e}")
+            return False
+
+    def create_user_by_admin(self, full_name, phone, password, role):
+        """Admin-only function to create a new, active user of any role."""
+        if role not in ('admin', 'doctor', 'receptionist'):
+            return False
+        try:
+            hashed_pass = self._hash_password(password)
+            self.cursor.execute("""
+            INSERT INTO users (full_name, phone, password, role, status)
+            VALUES (?, ?, ?, ?, 'active')
+            """, (full_name, phone, hashed_pass, role))
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False # Phone already exists
+        except sqlite3.Error as e:
+            print(f"Error creating user by admin: {e}")
+            return False
+    
     def __del__(self):
         """Close the database connection when the object is destroyed."""
         if hasattr(self, 'conn'):

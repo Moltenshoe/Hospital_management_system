@@ -2,7 +2,7 @@
 
 This is a simple, desktop-based Hospital Management System (HMS) built using Python, PyQt5 for the user interface, and SQLite for the database.
 
-It's designed with three distinct user roles, each with their own permissions and dashboard.
+It's designed with three distinct user roles, each with their own permissions and dashboard. The project uses a clean architecture, separating database logic (`db_manager.py`), UI components (in the `ui/` package), and main application control (`main.py`).
 
 <!-- Add a screenshot here! -->
 ![App Screenshot](/images/login_view.png)
@@ -10,12 +10,19 @@ It's designed with three distinct user roles, each with their own permissions an
 ## Features
 
 * **Three User Roles:**
-    * **Admin:** Can approve or deny new user registrations and create other admin accounts.
-    * **Doctor:** Can view patients assigned to them and either "Accept" or "Deny" them.
-    * **Receptionist:** Can create new patient records, delete patients, and assign patients to specific doctors.
+    * **Admin:**
+        * Approves or denies new, pending user registrations.
+        * Manages *all* users in the system (views all, can add new users of any role, can remove any user).
+    * **Doctor:**
+        * Dashboard is split into "Pending" and "Accepted" patient tabs for better organization.
+        * Can "Accept" or "Deny" individual patients.
+        * Can **"Accept All"** pending patients at once.
+    * **Receptionist:**
+        * Creates new patient records.
+        * Manages the full patient list, with options to delete patients or assign them to a doctor.
 * **Secure Login:** User passwords are "hashed" (encrypted) in the database and checked on login.
 * **Registration System:** New doctors and receptionists can register, but their accounts must be approved by an admin before they can log in.
-* **Live Data Refresh:** The application automatically polls the database every 5 seconds to refresh the data, ensuring multiple users see up-to-date information.
+* **Live Data Refresh:** The application automatically polls the database every 5 seconds to refresh the data, ensuring all users see up-to-date information.
 
 ## How to Run
 
