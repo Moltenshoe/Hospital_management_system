@@ -24,7 +24,7 @@ class DoctorDashboardWidget(QWidget):
         pending_label = QLabel("Patients Awaiting Your Approval")
         pending_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         
-        headers = ["ID", "Full Name", "Age", "Gender", "Problem", "Status"]
+        headers = ["ID", "Full Name", "Date of Birth", "Gender", "Contact Phone", "Problem", "Status", "Created At", "Blood Type"]
         self.pending_table = self._create_table(headers)
         
         pending_btn_layout = QHBoxLayout()
@@ -125,7 +125,7 @@ class DoctorDashboardWidget(QWidget):
         
         for patient_data in patients:
             # patient_data = (id, full_name, age, gender, problem, doctor_status)
-            status = patient_data[5]
+            status = patient_data[6]
             
             if status == 'pending':
                 self.pending_table.insertRow(pending_row)

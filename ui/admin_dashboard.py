@@ -31,7 +31,7 @@ class AdminDashboardWidget(QWidget):
         
         approve_label = QLabel("Pending User Registrations")
         approve_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        self.pending_table = self._create_table(["ID", "Full Name", "Phone", "Role"])
+        self.pending_table = self._create_table(["ID", "Full Name", "Phone", "Role", "Registered At"])
         
         approve_btn_layout = QHBoxLayout()
         self.approve_button = QPushButton("Approve Selected")
@@ -70,7 +70,7 @@ class AdminDashboardWidget(QWidget):
         manage_label = QLabel("All Users")
         manage_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         
-        headers = ["ID", "Full Name", "Phone", "Role", "Status"]
+        headers = ["ID", "Full Name", "Phone", "Role", "Status", "Created At"]
         self.all_users_table = self._create_table(headers)
         
         manage_btn_layout = QHBoxLayout()

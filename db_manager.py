@@ -31,21 +31,26 @@ class DatabaseManager:
                 phone TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending' 
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             """)
             
-            # Patients table: 'doctor_status' is what the doctor modifies
             self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS patients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                full_name TEXT NOT NULL,
-                age INTEGER,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                date_of_birth TEXT NOT NULL,
                 gender TEXT,
+                contact_phone TEXT,
                 problem TEXT,
+                address TEXT,
+                blood_type TEXT,
                 assigned_doctor_id INTEGER,
                 doctor_status TEXT DEFAULT 'pending',
                 created_by_receptionist_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (assigned_doctor_id) REFERENCES users (id),
                 FOREIGN KEY (created_by_receptionist_id) REFERENCES users (id)
             );
@@ -111,7 +116,7 @@ class DatabaseManager:
     def get_pending_registrations(self):
         """Returns a list of all users with 'pending' status."""
         try:
-            self.cursor.execute("SELECT id, full_name, phone, role FROM users WHERE status='pending'")
+            self.cursor.execute("SELECT id, full_name, phone, role, created_at FROM users WHERE status='pending'")
             return self.cursor.fetchall()
         except sqlite3.Error as e:
             print(f"Error fetching pending registrations: {e}")
@@ -162,13 +167,13 @@ class DatabaseManager:
             print(f"Error fetching doctors: {e}")
             return []
 
-    def create_patient(self, full_name, age, gender, problem, receptionist_id):
+    def create_patient(self, first_name, last_name, dob, gender, contact_phone, problem, address, blood_type, receptionist_id):
         """Creates a new patient record."""
         try:
             self.cursor.execute("""
-            INSERT INTO patients (full_name, age, gender, problem, created_by_receptionist_id)
-            VALUES (?, ?, ?, ?, ?)
-            """, (full_name, age, gender, problem, receptionist_id))
+            INSERT INTO patients (first_name, last_name, date_of_birth, gender, contact_phone, problem, address, blood_type, created_by_receptionist_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (first_name, last_name, dob, gender, contact_phone, problem, address, blood_type, receptionist_id))
             self.conn.commit()
             return True
         except sqlite3.Error as e:
@@ -192,7 +197,7 @@ class DatabaseManager:
         try:
             # Use LEFT JOIN to include patients even if they have no doctor assigned
             self.cursor.execute("""
-            SELECT p.id, p.full_name, p.age, p.problem, u.full_name, p.doctor_status
+            SELECT p.id, p.first_name || ' ' || p.last_name, p.date_of_birth, p.contact_phone, p.problem, u.full_name, p.doctor_status, p.created_at, p.blood_type
             FROM patients p
             LEFT JOIN users u ON p.assigned_doctor_id = u.id
             """)
@@ -219,8 +224,8 @@ class DatabaseManager:
         """Returns all patients assigned to a specific doctor."""
         try:
             self.cursor.execute("""
-            SELECT id, full_name, age, gender, problem, doctor_status
-            FROM patients 
+            SELECT id, p.first_name || ' ' || p.last_name, date_of_birth, gender, contact_phone, problem, doctor_status, created_at, blood_type
+            FROM patients p
             WHERE assigned_doctor_id = ?
             """, (doctor_id,))
             return self.cursor.fetchall()
@@ -250,7 +255,7 @@ class DatabaseManager:
     def get_all_users(self):
         """Returns a list of all users."""
         try:
-            self.cursor.execute("SELECT id, full_name, phone, role, status FROM users")
+            self.cursor.execute("SELECT id, full_name, phone, role, status, created_at FROM users")
             return self.cursor.fetchall()
         except sqlite3.Error as e:
             print(f"Error fetching all users: {e}")
@@ -292,6 +297,48 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error creating user by admin: {e}")
             return False
+    
+    # --- ADD THESE TWO NEW FUNCTIONS ---
+
+    def get_patient_details(self, patient_id):
+        """
+        Fetches all editable details for a single patient.
+        Returns a tuple of the data.
+        """
+        try:
+            self.cursor.execute("""
+            SELECT first_name, last_name, date_of_birth, gender, 
+                   contact_phone, problem, address, blood_type
+            FROM patients 
+            WHERE id = ?
+            """, (patient_id,))
+            return self.cursor.fetchone() # Returns one tuple or None
+        except sqlite3.Error as e:
+            print(f"Error fetching patient details: {e}")
+            return None
+
+    def update_patient(self, patient_id, first_name, last_name, dob, gender, contact_phone, problem, address, blood_type):
+        """Updates an existing patient's record."""
+        try:
+            self.cursor.execute("""
+            UPDATE patients SET
+                first_name = ?,
+                last_name = ?,
+                date_of_birth = ?,
+                gender = ?,
+                contact_phone = ?,
+                problem = ?,
+                address = ?,
+                blood_type = ?
+            WHERE id = ?
+            """, (first_name, last_name, dob, gender, contact_phone, problem, address, blood_type, patient_id))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Error updating patient: {e}")
+            return False
+
+    # --- END OF NEW FUNCTIONS ---
     
     def __del__(self):
         """Close the database connection when the object is destroyed."""

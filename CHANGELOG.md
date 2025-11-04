@@ -10,6 +10,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2025-11-04
+### Added
+- **Admin:** Added a new "Manage All Users" tab to the admin dashboard.
+- **Admin:** Admins can now create new, active users of any role (admin, doctor, receptionist) from their dashboard.
+- **Admin:** Admins can now delete any existing user (except themselves).
+- **Doctor:** Added an "Accept All Pending" button to the doctor's dashboard to accept all patients at once.
+- **Receptionist:** Added an "Edit Selected Patient" button to the "Manage Patients" tab.
+- **Receptionist:** Created a new `EditPatientDialog` popup that is pre-filled with the selected patient's data for editing.
+- **Patient Form:** Added new fields to patient registration: `Date of Birth`, `Address`, `Blood Type`, and `Contact Phone`.
+- **Patient Form:** The patient's `Age` is now automatically calculated and displayed based on their Date of Birth.
+- **Timestamps:** Added `created_at` timestamp columns to both `users` and `patients` tables, which are automatically set on creation. This timestamp is now visible in all user/patient tables in the app.
+- **Branding:** Added a custom application icon (`logo.png`) to the window's title bar and the Windows taskbar.
+
+### Changed
+- **Project Structure (Refactor):** The entire UI has been refactored for scalability. All classes from the single `ui_widgets.py` file have been split into a new `ui/` package with separate files:
+    - `ui/auth_widgets.py`
+    - `ui/admin_dashboard.py`
+    - `ui/doctor_dashboard.py`
+    - `ui/receptionist_dashboard.py`
+- **Doctor:** The Doctor dashboard layout is now a `QTabWidget`, separating patients into a "Pending Patients" tab and an "Accepted Patients" tab.
+- **Patient Form:** Changed `Full Name` field to separate `First Name` and `Last Name` fields.
+- **Patient Form:** Added validation to `First Name` and `Last Name` to only allow alphabetic characters.
+- **Patient Form:** Changed `Contact Phone` validation to require a 10-digit number.
+
+### Fixed
+- **Table Deselection Bug:** Implemented data caching in `main.py` to stop the 5-second auto-refresh from clearing the user's table selection. The table now only visually refreshes if the data has actually changed.
+- **Doctor:** Fixed a bug where newly assigned patients were not appearing on the doctor's dashboard (was checking the wrong data column for "pending" status).
+- **Receptionist:** Fixed a crash (`TypeError`) when clicking "Create Patient" with empty fields.
+- **Receptionist:** Fixed a crash (`AttributeError`) related to `addYears` when setting the default date of birth.
+- **Receptionist:** Fixed a crash (`ImportError`) caused by the `EditPatientDialog` class being incorrectly nested.
+- **Database:** Fixed a crash (`8 values for 9 columns`) when creating a new patient due to a missing value in the SQL query.
+
+---
+
 ## [0.2.0] - 2025-10-31
 ### Added
 - **Admin:** Added a new "Manage All Users" tab to the admin dashboard.
@@ -51,3 +85,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `README.md` with project description, features, and setup instructions.
     - `LICENSE` file (MIT License).
     - `.gitignore` to exclude the database and Python cache files from version control.
+    

@@ -1,6 +1,8 @@
 import sys
+import ctypes
 from PyQt5.QtWidgets import QApplication, QMainWindow, QStackedWidget, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QIcon
 
 # Import our custom classes
 from db_manager import DatabaseManager
@@ -10,7 +12,7 @@ from db_manager import DatabaseManager
 from ui.auth_widgets import LoginWidget, RegisterWidget
 from ui.admin_dashboard import AdminDashboardWidget
 from ui.doctor_dashboard import DoctorDashboardWidget
-from ui.receptionist_dashboard import ReceptionistDashboardWidget
+from ui.receptionist_dashboard import ReceptionistDashboardWidget, EditPatientDialog
 # --- END NEW IMPORTS ---
 
 
@@ -24,6 +26,8 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Hospital Management System")
         self.setGeometry(100, 100, 800, 600)
+        
+        self.setWindowIcon(QIcon("logo.png"))
 
         # Central stacked widget to hold all "pages"
         self.stack = QStackedWidget(self)
@@ -42,6 +46,12 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.admin_dashboard)
         self.stack.addWidget(self.doctor_dashboard)
         self.stack.addWidget(self.receptionist_dashboard)
+        
+        self.cached_pending_users = []
+        self.cached_all_users = []
+        self.cached_doctor_patients = []
+        self.cached_all_patients = []
+        self.cached_doctors_list = []
 
         # Setup refresh timer
         self.refresh_timer = QTimer(self)
@@ -63,6 +73,13 @@ class MainWindow(QMainWindow):
         self.refresh_timer.stop() # Stop polling when logged out
         self.current_user_id = None
         self.current_user_role = None
+        
+        self.cached_pending_users = []
+        self.cached_all_users = []
+        self.cached_doctor_patients = []
+        self.cached_all_patients = []
+        self.cached_doctors_list = []
+        
         self.login_widget.clear_fields()
         self.stack.setCurrentWidget(self.login_widget)
         self.resize(380, 250)
@@ -148,6 +165,7 @@ class MainWindow(QMainWindow):
     def _connect_receptionist_signals(self):
         self.receptionist_dashboard.logout_requested.connect(self.show_login_page)
         self.receptionist_dashboard.create_patient.connect(self.handle_create_patient)
+        self.receptionist_dashboard.edit_patient_requested.connect(self.handle_edit_patient_request)
         self.receptionist_dashboard.delete_patient.connect(self.handle_delete_patient)
         self.receptionist_dashboard.assign_patient.connect(self.handle_assign_patient)
 
@@ -155,21 +173,43 @@ class MainWindow(QMainWindow):
 
     def load_admin_data(self):
         # This function now loads data for BOTH admin tables
-        pending_users = self.db.get_pending_registrations()
-        self.admin_dashboard.load_pending_registrations(pending_users)
         
+        # 1. Load Pending Users
+        pending_users = self.db.get_pending_registrations()
+        if pending_users != self.cached_pending_users:
+            print("...Refreshing pending users table.")
+            self.admin_dashboard.load_pending_registrations(pending_users)
+            self.cached_pending_users = pending_users
+        
+        # 2. Load All Users
         all_users = self.db.get_all_users()
-        self.admin_dashboard.load_all_users(all_users)
+        if all_users != self.cached_all_users:
+            print("...Refreshing all users table.")
+            self.admin_dashboard.load_all_users(all_users)
+            self.cached_all_users = all_users
         
     def load_doctor_data(self):
         patients = self.db.get_patients_for_doctor(self.current_user_id)
-        self.doctor_dashboard.load_assigned_patients(patients) # The UI will sort them
+        
+        if patients != self.cached_doctor_patients:
+            print("...Refreshing doctor patients table.")
+            self.doctor_dashboard.load_assigned_patients(patients) # The UI will sort them
+            self.cached_doctor_patients = patients
 
     def load_receptionist_data(self):
+        # 1. Load All Patients
         patients = self.db.get_all_patients()
-        self.receptionist_dashboard.load_all_patients(patients)
+        if patients != self.cached_all_patients:
+            print("...Refreshing all patients table.")
+            self.receptionist_dashboard.load_all_patients(patients)
+            self.cached_all_patients = patients
+            
+        # 2. Load Doctors List
         doctors = self.db.get_doctors()
-        self.receptionist_dashboard.set_doctors_list(doctors)
+        if doctors != self.cached_doctors_list:
+            print("...Refreshing doctors list.")
+            self.receptionist_dashboard.set_doctors_list(doctors)
+            self.cached_doctors_list = doctors
 
     # --- Logic Handlers ---
 
@@ -260,23 +300,48 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", "Could not update patient status.")
             
     # --- Receptionist Handlers ---
-    def handle_create_patient(self, name, age, gender, problem):
-        if not all([name, age, problem]):
-            QMessageBox.warning(self, "Error", "Please fill in Name, Age, and Problem.")
-            return
+    # --- Receptionist Handlers ---
+    def handle_create_patient(self, first_name, last_name, dob, gender, contact_phone, problem, address, blood_type):
+        # All validation is now done in the UI, so we can just call the database.
         
-        try:
-            age_int = int(age)
-        except ValueError:
-            QMessageBox.warning(self, "Error", "Age must be a number.")
-            return
-
-        if self.db.create_patient(name, age_int, gender, problem, self.current_user_id):
+        if self.db.create_patient(first_name, last_name, dob, gender, contact_phone, problem, address, blood_type, self.current_user_id):
             QMessageBox.information(self, "Success", "Patient created successfully.")
             self.receptionist_dashboard.clear_patient_form()
             self.load_receptionist_data() # Refresh table
         else:
             QMessageBox.warning(self, "Error", "Could not create patient.")
+            
+    def handle_edit_patient_request(self, patient_id):
+        """Handles the request to edit a patient."""
+        
+        # 1. Fetch current data
+        current_data = self.db.get_patient_details(patient_id)
+        if not current_data:
+            QMessageBox.warning(self, "Error", "Could not find patient data.")
+            return
+            
+        # 2. Open the edit dialog, pre-filled with data
+        dialog = EditPatientDialog(current_data, self)
+        
+        # 3. If the dialog is saved (OK clicked)
+        if dialog.exec_():
+            # 4. Get the new, edited details
+            (first, last, dob, gender, phone, prob, addr, blood) = dialog.get_details()
+            
+            # 5. Run validation (same as creating a patient)
+            if not all([first, last, phone, prob]):
+                QMessageBox.warning(self, "Error", "Please fill in at least First Name, Last Name, Contact Phone, and Problem.")
+                return
+            if not first.isalpha() or not last.isalpha():
+                QMessageBox.warning(self, "Error", "First and Last Name must contain only alphabets.")
+                return
+
+            # 6. Call the database to update
+            if self.db.update_patient(patient_id, first, last, dob, gender, phone, prob, addr, blood):
+                QMessageBox.information(self, "Success", "Patient details updated successfully.")
+                self.load_receptionist_data() # Refresh the table
+            else:
+                QMessageBox.warning(self, "Error", "Could not update patient details.")
             
     def handle_delete_patient(self, patient_id):
         if self.db.delete_patient(patient_id):
@@ -294,6 +359,15 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
+    
+    try:
+        # A unique string to identify our app
+        myappid = 'hms.app.v1.0' 
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except AttributeError:
+        # This will fail on non-Windows systems, which is fine
+        pass
+    
     app = QApplication(sys.argv)
     
     # Initialize database
