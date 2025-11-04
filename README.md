@@ -20,6 +20,7 @@ It's designed with three distinct user roles, each with their own permissions an
     * **Receptionist:**
         * Creates new patient records.
         * Manages the full patient list, with options to delete patients or assign them to a doctor.
+        ![App Screenshot](/images/patient_creation.png)
 * **Secure Login:** User passwords are "hashed" (encrypted) in the database and checked on login.
 * **Registration System:** New doctors and receptionists can register, but their accounts must be approved by an admin before they can log in.
 * **Live Data Refresh:** The application automatically polls the database every 5 seconds to refresh the data, ensuring all users see up-to-date information.
@@ -52,5 +53,7 @@ A default admin account is created automatically when you first run the app.
 
 * **Phone:** `admin`
 * **Password:** `admin123`
+
+![App Screenshot](/images/manage_users.png)
 
 You can use this account to log in and approve any new "doctor" or "receptionist" accounts you register.
