@@ -12,8 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2025-11-04
 ### Added
-- **Admin:** Added a new "Manage All Users" tab to the admin dashboard.
-- **Admin:** Admins can now create new, active users of any role (admin, doctor, receptionist) from their dashboard.
 - **Admin:** Admins can now delete any existing user (except themselves).
 - **Doctor:** Added an "Accept All Pending" button to the doctor's dashboard to accept all patients at once.
 - **Receptionist:** Added an "Edit Selected Patient" button to the "Manage Patients" tab.
@@ -39,8 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor:** Fixed a bug where newly assigned patients were not appearing on the doctor's dashboard (was checking the wrong data column for "pending" status).
 - **Receptionist:** Fixed a crash (`TypeError`) when clicking "Create Patient" with empty fields.
 - **Receptionist:** Fixed a crash (`AttributeError`) related to `addYears` when setting the default date of birth.
-- **Receptionist:** Fixed a crash (`ImportError`) caused by the `EditPatientDialog` class being incorrectly nested.
-- **Database:** Fixed a crash (`8 values for 9 columns`) when creating a new patient due to a missing value in the SQL query.
 
 ---
 
